@@ -3,10 +3,11 @@ import { errorResponse } from "@/lib/utils";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 const adminUser = process.env.ADMIN_USER;
 const adminPass = process.env.ADMIN_PASS;
 
+// Preflight request handler
 export async function OPTIONS(req) {
   const headers = getCorsHeaders(req);
   return new Response(null, { status: 204, headers });
@@ -30,7 +31,6 @@ export async function POST(req) {
         { status: 200, headers }
       );
 
-      // Necessary cookie flags for cross-domain auth on Vercel deployments
       const isProduction = process.env.NODE_ENV === "production";
 
       response.cookies.set("token", token, {
@@ -46,6 +46,6 @@ export async function POST(req) {
 
     return errorResponse("Invalid email or password", 401, headers);
   } catch (error) {
-    return errorResponse("Invalid request format", 400, headers);
+    return errorResponse("Invalid request payload", 400, headers);
   }
 }

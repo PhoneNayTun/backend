@@ -1,16 +1,33 @@
-import { verifyJWT } from "@/lib/auth";
-import corsHeaders from "@/lib/cors";
+import { getCorsHeaders } from "@/lib/cors";
 import { errorResponse } from "@/lib/utils";
+import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
-export async function GET(request) {
-  const user = await verifyJWT(request);
-  if (!user) {
-    return errorResponse("Unauthorized Request", 401);
-  }
-  return NextResponse.json({ user }, { status: 200, headers: corsHeaders });
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
+
+// Preflight request handler
+export async function OPTIONS(req) {
+  const headers = getCorsHeaders(req);
+  return new Response(null, { status: 204, headers });
 }
 
-export async function OPTIONS() {
-  return NextResponse.json({}, { status: 200, headers: corsHeaders });
+export async function GET(req) {
+  const headers = getCorsHeaders(req);
+
+  try {
+    const token = req.cookies.get("token")?.value;
+
+    if (!token) {
+      return errorResponse("Unauthorized: Missing token", 401, headers);
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    return NextResponse.json(
+      { user: decoded },
+      { status: 200, headers }
+    );
+  } catch (error) {
+    return errorResponse("Unauthorized: Invalid token", 401, headers);
+  }
 }
